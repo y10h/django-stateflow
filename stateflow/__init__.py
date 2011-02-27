@@ -1,6 +1,6 @@
-#============================
-# Generic workflow mechanism
-#============================
+"""
+Generic workflow mechanism
+"""
 
 class RegistryMetaclass(type):
     """
@@ -19,16 +19,16 @@ class RegistryMetaclass(type):
     def __iter__(cls):
         return iter(cls._subclasses)
 
-    
-class StatusMetaclass(RegistryMetaclass):
+
+class StateMetaclass(RegistryMetaclass):
 
     def __init__(cls, name, bases, dict):
-        super(StatusMetaclass, cls).__init__(name, bases, dict)
+        super(StateMetaclass, cls).__init__(name, bases, dict)
         abstract = dict.pop('abstract', False)
         if not abstract:
-            cls.next_actions = []
-            cls.prev_actions = []
-    
+            cls.forward_transitions = []
+            cls.backward_transitions = []
+
     # TODO: This method don't belong to 'general' part
     # But it's here because of metaclass conflict.
     # Something should be done about it
@@ -36,44 +36,45 @@ class StatusMetaclass(RegistryMetaclass):
         return cls.get_title()
 
     def __repr__(cls):
-        return "<Status: '%s'>" % cls.get_title()
+        return "<State: '%s'>" % cls.get_title()
 
-class ActionMetaclass(RegistryMetaclass):
+class TransitionMetaclass(RegistryMetaclass):
 
     def __init__(cls, name, bases, dict):
-        super(ActionMetaclass, cls).__init__(name, bases, dict)
+        super(TransitionMetaclass, cls).__init__(name, bases, dict)
         abstract = dict.pop('abstract', False)
         if not abstract:
             for klass in dict['income']:
-                next_actions = getattr(klass, 'next_actions')
-                next_actions.append(cls)
-            getattr(klass, 'prev_actions').append(cls)
+                forward_transitions = getattr(klass, 'forward_transitions')
+                forward_transitions.append(cls)
+            getattr(klass, 'backward_transitions').append(cls)
 
     def __str__(cls):
         return cls.get_title()
 
     def __repr__(cls):
-        return "<Action: '%s'>" % cls.get_title()
+        return "<Transition: '%s'>" % cls.get_title()
 
 
 
-class Status(object):
+class State(object):
 
-    __metaclass__ = StatusMetaclass
+    __metaclass__ = StateMetaclass
 
     abstract = True
 
 
-class Action(object):
-    
-    __metaclass__ = ActionMetaclass
+class Transition(object):
+
+    __metaclass__ = TransitionMetaclass
 
     abstract = True
 
 
     @classmethod
     def apply(cls, obj, *args, **kwargs):
-        raise NotImplementedError("Apply method should be defined in subclasses")
+        raise NotImplementedError(
+            "Apply method should be defined in subclasses")
 
     def __init__(self, obj=None):
         self.obj = obj
@@ -85,6 +86,5 @@ class Action(object):
         #TODO: Make sure that all situations are handled properly
         if owner is not None:
             return self.__class__(instance)
-        return self 
-
+        return self
 
