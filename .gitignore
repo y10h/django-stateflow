@@ -1,0 +1,4 @@
+*.pyc
+dist/
+django_stateflow.egg-info/
+django-stateflow-*/
