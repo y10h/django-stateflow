@@ -9,16 +9,20 @@ class DjangoItem(object):
     """Stores common methods of DjanoState and DjangoTransition"""
 
     @classmethod
+    def get_name(cls):
+        return cls.__name__
+
+    @classmethod
     def get_value(cls):
         try:
             return getattr(cls, 'value')
         except AttributeError:
-            return cls.__name__.upper()
+            return cls.get_name().upper()
 
     @classmethod
     def get_title(cls):
         title = getattr(cls, 'title', None)
-        return title or cls.__name__
+        return title or cls.get_name()
 
     @classmethod
     def as_tuple(cls):
@@ -146,15 +150,14 @@ class StateWidget(forms.Select):
 
 class StateFlowField(models.Field):
 
+    __metaclass__ = models.SubfieldBase
+
     def __init__(self, verbose_name=None, name=None,
                  flow=None, **kwargs):
         if flow is None:
             raise ValueError("StateFlowField need to have defined flow")
         self.flow = flow
         models.Field.__init__(self, verbose_name, name, **kwargs)
-
-
-    __metaclass__ = models.SubfieldBase
 
     def get_internal_type(self):
         return "CharField"
@@ -171,7 +174,6 @@ class StateFlowField(models.Field):
         if isinstance(value, type) and issubclass(value, DjangoState):
             return value
         return self.flow.get_state(value)
-
 
     def value_to_string(self, obj):
         """

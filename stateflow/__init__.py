@@ -2,7 +2,6 @@
 Generic workflow mechanism
 """
 
-
 class StateMetaclass(type):
 
     def __init__(cls, name, bases, dict):
@@ -53,23 +52,10 @@ class Transition(object):
 
     abstract = True
 
-
     @classmethod
     def apply(cls, obj, *args, **kwargs):
         raise NotImplementedError(
             "Apply method should be defined in subclasses")
-
-    def __init__(self, obj=None):
-        self.obj = obj
-
-    def __call__(self, *args, **kwargs):
-        return self.__class__.apply(self.obj, *args, **kwargs)
-
-    def __get__(self, instance, owner=None):
-        #TODO: Make sure that all situations are handled properly
-        if owner is not None:
-            return self.__class__(instance)
-        return self
 
 
 class Flow(object):
@@ -78,8 +64,10 @@ class Flow(object):
         self.states = states
         self.transitions = transitions
         self.initial_state = initial_state
+
         for state in self.states:
             state.flow = self
+
         for transition in self.transitions:
             transition.flow = self
 
@@ -93,4 +81,3 @@ class Flow(object):
 
     def state_choices(self):
         return [state.as_tuple() for state in self.states]
-
