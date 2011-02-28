@@ -2,25 +2,8 @@
 Generic workflow mechanism
 """
 
-class RegistryMetaclass(type):
-    """
-    A simple metaclass that allows class to keep a list of it's immediate
-    subclasses.
-    Python has __subclasses__ attribute, but it has uncertain status
-    """
 
-    def __init__(cls, name, bases, dict):
-        super(RegistryMetaclass, cls).__init__(name, bases, dict)
-        cls._subclasses = []
-        for klass in bases:
-            if hasattr(klass, '_subclasses'):
-                klass._subclasses.append(cls)
-
-    def __iter__(cls):
-        return iter(cls._subclasses)
-
-
-class StateMetaclass(RegistryMetaclass):
+class StateMetaclass(type):
 
     def __init__(cls, name, bases, dict):
         super(StateMetaclass, cls).__init__(name, bases, dict)
@@ -38,7 +21,7 @@ class StateMetaclass(RegistryMetaclass):
     def __repr__(cls):
         return "<State: '%s'>" % cls.get_title()
 
-class TransitionMetaclass(RegistryMetaclass):
+class TransitionMetaclass(type):
 
     def __init__(cls, name, bases, dict):
         super(TransitionMetaclass, cls).__init__(name, bases, dict)
@@ -87,4 +70,27 @@ class Transition(object):
         if owner is not None:
             return self.__class__(instance)
         return self
+
+
+class Flow(object):
+
+    def __init__(self, states, transitions, initial_state):
+        self.states = states
+        self.transitions = transitions
+        self.initial_state = initial_state
+        for state in self.states:
+            state.flow = self
+        for transition in self.transitions:
+            transition.flow = self
+
+    def get_state(self, value=None):
+        if value is None or value == '':
+            return self.initial_state
+        for item in self.states:
+            if item.get_value() == value:
+                return item
+        raise ValueError('Cannot find state %r' % value)
+
+    def state_choices(self):
+        return [state.as_tuple() for state in self.states]
 

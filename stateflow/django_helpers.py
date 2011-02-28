@@ -3,6 +3,8 @@ from django import forms
 
 from stateflow import State, Transition
 
+
+
 class DjangoItem(object):
     """Stores common methods of DjanoState and DjangoTransition"""
 
@@ -26,23 +28,6 @@ class DjangoItem(object):
     def as_sql(cls):
         return '%s', (cls.get_value(),)
 
-    @classmethod
-    def all(cls):
-        return [subclass for subclass in cls._subclasses
-                if subclass.get_value() is not None]
-
-    @classmethod
-    def choices(cls):
-        return [item.as_tuple() for item in cls.all()]
-
-    @classmethod
-    def get(cls, value, default=None):
-        """Finds a state by it's value"""
-        for item in cls._subclasses:
-            if item.get_value() == value:
-                return item
-        return default
-
 
 
 class DjangoState(State, DjangoItem):
@@ -55,6 +40,7 @@ class DjangoState(State, DjangoItem):
         # it returns a new instance), we end up having instances, not classes
         # rendered in the template
         return str(self.__class__)
+
 
     @classmethod
     def forward_allowed_transitions(cls, roles):
@@ -115,13 +101,16 @@ class DjangoTransition(Transition, DjangoItem):
         return str(self.__class__)
 
     @classmethod
+    def all(cls):
+        import warnings
+        warnings.warn("transition.all is deprecated, "
+                      "use flow.transitions instead",
+                      DeprecationWarning)
+        return cls.flow.transitions
+
+    @classmethod
     def admin_actions(cls):
         return [AdminAction(trans) for trans in cls.all()]
-
-
-class NoState(DjangoState):
-    value = None
-    forward_transitions = []
 
 
 class StateWidget(forms.Select):
@@ -155,11 +144,13 @@ class StateWidget(forms.Select):
         return u'\n'.join(output)
 
 
-class StateField(models.Field):
+class StateFlowField(models.Field):
 
     def __init__(self, verbose_name=None, name=None,
-                 state_class=NoState, **kwargs):
-        self.state_class = state_class
+                 flow=None, **kwargs):
+        if flow is None:
+            raise ValueError("StateFlowField need to have defined flow")
+        self.flow = flow
         models.Field.__init__(self, verbose_name, name, **kwargs)
 
 
@@ -179,7 +170,7 @@ class StateField(models.Field):
     def to_python(self, value):
         if isinstance(value, type) and issubclass(value, DjangoState):
             return value
-        return self.state_class.get(value, NoState)
+        return self.flow.get_state(value)
 
 
     def value_to_string(self, obj):
@@ -190,7 +181,7 @@ class StateField(models.Field):
         return self._get_val_from_obj(obj).get_value()
 
     def formfield(self, **kwargs):
-        choices = [(None,'----')] + self.state_class.choices()
+        choices = [(None, '----')] + self.flow.state_choices()
         return forms.ChoiceField(choices=choices, widget=StateWidget)
 
     def south_field_triple(self):
