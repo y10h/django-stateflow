@@ -1,7 +1,8 @@
 from django.db import models
 from django import forms
+from django.utils.importlib import import_module
 
-from stateclass import DjangoState
+from stateclass import DjangoState, Flow
 
 
 
@@ -36,6 +37,24 @@ class StateWidget(forms.Select):
         return u'\n'.join(output)
 
 
+def load_flow(flow_path):
+    dot = flow_path.rindex('.')
+    mod_name, cls_name = flow_path[:dot], flow_path[dot+1:]
+    mod = import_module(mod_name)
+    flow = getattr(mod, cls_name)
+    return flow
+
+
+def resolve_flow(flow_name):
+    try:
+        flow_is_cls = issubclass(flow_name, Flow)
+    except:
+        flow_is_cls = False
+    if flow_is_cls:
+        return flow_name, str(flow_name)
+    else:
+        return load_flow(flow_name), flow_name
+
 
 class StateFlowField(models.Field):
 
@@ -45,7 +64,7 @@ class StateFlowField(models.Field):
                  flow=None, **kwargs):
         if flow is None:
             raise ValueError("StateFlowField need to have defined flow")
-        self.flow = flow
+        self.flow, self.flow_path = resolve_flow(flow)
         models.Field.__init__(self, verbose_name, name, **kwargs)
 
     def get_internal_type(self):
@@ -75,9 +94,26 @@ class StateFlowField(models.Field):
         choices = [(None, '----')] + self.flow.state_choices()
         return forms.ChoiceField(choices=choices, widget=StateWidget)
 
-    def south_field_triple(self):
-        """Returns a suitable description of this field for South."""
-        from south.modelsinspector import introspector
-        field_class = self.__class__.__module__ + '.' + self.__class__.__name__
-        args, kwargs = introspector(self)
-        return (field_class, args, kwargs)
+
+# Add suport of StateFlowField for South
+def add_south_introspector_rules():
+    from south.modelsinspector import add_introspection_rules
+
+    rules = [
+        (
+            (StateFlowField, ),
+            [],
+            {
+                "flow": ["flow_path", {}],
+            }
+        ),
+    ]
+
+    add_introspection_rules(rules, ["^stateflow\.statefields"])
+
+try:
+    import south
+except ImportError:
+    pass
+else:
+    add_south_introspector_rules()

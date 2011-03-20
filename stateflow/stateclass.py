@@ -37,6 +37,20 @@ class TransitionMetaclass(type):
     def __repr__(cls):
         return "<Transition: '%s'>" % cls.get_title()
 
+class FlowMetaclass(type):
+
+    def __init__(cls, name, bases, attrs):
+        super(FlowMetaclass, cls).__init__(name, bases, attrs)
+
+        for state in cls.states:
+            state.flow = cls
+
+        for transition in cls.transitions:
+            transition.flow = cls
+
+    def __str__(cls):
+        return ".".join([cls.__module__, cls.__name__])
+
 
 
 class State(object):
@@ -60,27 +74,25 @@ class Transition(object):
 
 class Flow(object):
 
-    def __init__(self, states, transitions, initial_state):
-        self.states = states
-        self.transitions = transitions
-        self.initial_state = initial_state
+    __metaclass__ = FlowMetaclass
 
-        for state in self.states:
-            state.flow = self
+    states = []
+    transitions = []
+    initial_state = None
 
-        for transition in self.transitions:
-            transition.flow = self
 
-    def get_state(self, value=None):
+    @classmethod
+    def get_state(cls, value=None):
         if value is None or value == '':
-            return self.initial_state
-        for item in self.states:
+            return cls.initial_state
+        for item in cls.states:
             if item.get_value() == value:
                 return item
         raise ValueError('Cannot find state %r' % value)
 
+    @classmethod
     def state_choices(self):
-        return [state.as_tuple() for state in self.states]
+        return [state.as_tuple() for state in cls.states]
 
 
 class DjangoItem(object):
