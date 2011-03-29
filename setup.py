@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
     name = 'django-stateflow',
     url='https://github.com/jellycrystal/django-stateflow',
-    version = '0.3',
+    version = '0.3.1',
     description = 'Workflow engine for Django',
     packages = find_packages(),
     maintainer='Yury Yurevich',

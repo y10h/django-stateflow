@@ -91,7 +91,7 @@ class Flow(object):
         raise ValueError('Cannot find state %r' % value)
 
     @classmethod
-    def state_choices(self):
+    def state_choices(cls):
         return [state.as_tuple() for state in cls.states]
 
 
