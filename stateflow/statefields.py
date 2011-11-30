@@ -70,7 +70,7 @@ class StateFlowField(models.Field):
     def get_internal_type(self):
         return "CharField"
 
-    def get_db_prep_value(self, value):
+    def get_prep_value(self, value):
         if value is None:
             return None
         elif isinstance(value, type) and issubclass(value, DjangoState):
