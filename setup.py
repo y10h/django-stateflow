@@ -7,7 +7,7 @@ setup(
     description = 'Workflow engine for Django',
     packages = find_packages(),
     maintainer='Yury Yurevich',
-    maintainer_email='yyurevich@jellycrystal.com',
+    maintainer_email='yyurevich@odesk.com',
     # Get more strings from http://www.python.org/pypi?:action=list_classifiers
     classifiers=[
         'Environment :: Web Environment',
